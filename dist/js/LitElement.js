@@ -16,10 +16,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { __wait } from '@lotsof/sugar/datetime';
 import { __adoptStyleInShadowRoot, __injectStyle, __querySelectorLive, __when, __whenInViewport, } from '@lotsof/sugar/dom';
 import { __deepMerge } from '@lotsof/sugar/object';
-import { __uniqid } from '@lotsof/sugar/string';
+import { __camelCase, __uniqid } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
 export { __html as html };
+// up
 class LitElement extends __LitElement {
     get state() {
         return this._state;
@@ -79,6 +80,16 @@ class LitElement extends __LitElement {
             this._defaultProps[sel] = Object.assign(Object.assign({}, ((_a = this._defaultProps[sel]) !== null && _a !== void 0 ? _a : {})), props);
         });
     }
+    injectStyle(css, id = this.tagName) {
+        // @ts-ignore
+        if (this.constructor._injectedStyles.indexOf(id) !== -1)
+            return;
+        // @ts-ignore
+        this.constructor._injectedStyles.push(id);
+        __injectStyle(css, {
+            id,
+        });
+    }
     /**
      * @name            getDefaultProps
      * @type            Function
@@ -107,13 +118,13 @@ class LitElement extends __LitElement {
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
     constructor(settings) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e;
         super();
         this.id = __uniqid();
         this.verbose = false;
         this.activeWhen = [];
         this.mountWhen = 'direct';
-        this.prefixEvent = false;
+        this.prefixEvent = true;
         this.adoptStyle = true;
         this.saveState = false;
         this._shouldUpdate = false;
@@ -171,11 +182,11 @@ class LitElement extends __LitElement {
         // @ts-ignore
         this.firstUpdated = () => __awaiter(this, void 0, void 0, function* () {
             if (nodeFirstUpdated) {
+                // @ts-ignore
                 yield nodeFirstUpdated();
             }
             // set the component as mounted
-            // @ts-ignore
-            this.setAttribute('mounted', true);
+            this.setAttribute('mounted', 'true');
         });
         // litElement shouldUpdate
         // @ts-ignore
@@ -190,21 +201,16 @@ class LitElement extends __LitElement {
             }
             return this._shouldUpdate;
         };
-        (() => __awaiter(this, void 0, void 0, function* () {
-            var _d, _e;
-            const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
-            const mountWhen = (_e = (_d = this.getAttribute('mount-when')) !== null && _d !== void 0 ? _d : defaultProps.mountWhen) !== null && _e !== void 0 ? _e : 'direct';
-            // component class
-            this.classList.add(...this.cls('').split(' '));
-            // wait until mount
-            yield this.waitAndExecute(mountWhen, () => {
-                this._mount();
-            });
-        }))();
-    }
-    firstUpdated() {
-        // @ts-ignore
-        super.firstUpdated();
+        // (async () => {
+        const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
+        const mountWhen = (_e = (_d = this.getAttribute('mount-when')) !== null && _d !== void 0 ? _d : defaultProps.mountWhen) !== null && _e !== void 0 ? _e : 'direct';
+        // component class
+        this.classList.add(...this.cls('').split(' '));
+        // wait until mount
+        this.waitAndExecute(mountWhen, () => {
+            this._mount();
+        });
+        // })();
     }
     _getDocumentFromElement($elm) {
         while ($elm.parentNode) {
@@ -233,11 +239,13 @@ class LitElement extends __LitElement {
         const componentName = this.name;
         if (this.prefixEvent) {
             // %componentName.%eventName
-            finalSettings.$elm.dispatchEvent(new CustomEvent(`${componentName}.${eventName}`, finalSettings));
+            console.log('di', `${__camelCase(componentName)}.${__camelCase(eventName)} `);
+            finalSettings.$elm.dispatchEvent(new CustomEvent(`${__camelCase(componentName)}.${__camelCase(eventName)}`, finalSettings));
         }
         else {
             // %eventName
-            finalSettings.$elm.dispatchEvent(new CustomEvent(eventName, Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventComponent: componentName }) })));
+            console.log('di', `${__camelCase(componentName)}.${__camelCase(eventName)} `);
+            finalSettings.$elm.dispatchEvent(new CustomEvent(__camelCase(eventName), Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventComponent: componentName }) })));
         }
         // %componentName
         finalSettings.$elm.dispatchEvent(new CustomEvent(componentName, Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventType: eventName }) })));
@@ -259,16 +267,6 @@ class LitElement extends __LitElement {
      */
     adoptStyleInShadowRoot($shadowRoot, $context) {
         return __adoptStyleInShadowRoot($shadowRoot, $context);
-    }
-    injectStyle(css, id = this.tagName) {
-        // @ts-ignore
-        if (this.constructor._injectedStyles.indexOf(id) !== -1)
-            return;
-        // @ts-ignore
-        this.constructor._injectedStyles.push(id);
-        __injectStyle(css, {
-            id,
-        });
     }
     /**
      * @name          cls
@@ -327,12 +325,6 @@ class LitElement extends __LitElement {
      */
     waitAndExecute(when, callback) {
         return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-            // make sure to not init components that are in
-            //   if (this.tagName.toLowerCase() !== 's-carpenter') {
-            //     if (document.env?.CARPENTER && !__isInIframe()) {
-            //       return;
-            //     }
-            //   }
             if (!Array.isArray(when)) {
                 when = [when];
             }
@@ -407,64 +399,12 @@ class LitElement extends __LitElement {
             for (let [name, value] of Object.entries(defaultProps)) {
                 this[name] = value;
             }
-            // const properties = (<typeof LitElement>this.constructor).properties;
-            // this.props stack
-            // let finalProps = {};
-            // for (let [prop, obj] of Object.entries(properties)) {
-            //   if (this[prop] !== undefined) {
-            //     finalProps[prop] = this[prop];
-            //   }
-            //   Object.defineProperty(this.props, prop, {
-            //     enumerable: true,
-            //     get() {
-            //       return _this[prop];
-            //     },
-            //     set(value) {
-            //       // get the value
-            //       value = value?.value ?? value;
-            //       // try to parse JSON if the value is a string
-            //       if (value && typeof value === 'string') {
-            //         try {
-            //           _this[prop] = JSON.parse(value);
-            //           return;
-            //         } catch (e) {}
-            //       }
-            //       // set the value
-            //       _this[prop] = value;
-            //     },
-            //   });
-            //   // default props
-            //   if (finalProps[prop] === undefined && this[prop] === undefined) {
-            //     finalProps[prop] = defaultProps[prop] ?? (<any>obj).default;
-            //   }
-            // }
-            // const attrs = this.attributes;
-            // for (let [id, attr] of Object.entries(attrs)) {
-            //   if (attr.name.includes('.')) {
-            //     __set(finalProps, __camelCase(attr.name), __parse(attr.value));
-            //   }
-            // }
-            // Object.assign(this.props, finalProps);
             // make props responsive
             // this.utils.makePropsResponsive(this.props);
             // verbose
             if (this.verbose) {
                 console.log(`[${this.tagName.toLowerCase()}]${this.id ? ` #${this.id} ` : ' '}mounting`);
             }
-            // handle state if needed
-            // if (this.state) {
-            //   const state = Object.assign({}, this.state);
-            //   delete this.state;
-            //   Object.defineProperty(this, 'state', {
-            //     enumerable: true,
-            //     value: this.utils.handleState(state, {
-            //       save: this.saveState,
-            //     }),
-            //   });
-            //   this.state.$set('*', () => {
-            //     this.requestUpdate();
-            //   });
-            // }
             // custom mount function
             if (this.mount && typeof this.mount === 'function') {
                 yield this.mount();
@@ -473,7 +413,7 @@ class LitElement extends __LitElement {
             this._shouldUpdate = true;
             // @ts-ignore
             this.requestUpdate();
-            yield this.updateComplete;
+            // await this.updateComplete;
             this.injectStyle(
             // @ts-ignore
             (_b = (_a = this.constructor.styles) === null || _a === void 0 ? void 0 : _a.cssText) !== null && _b !== void 0 ? _b : '', this.tagName);

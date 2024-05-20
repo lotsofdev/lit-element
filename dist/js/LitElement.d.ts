@@ -12,7 +12,6 @@ export interface ILitElementSettings {
     name: string;
     style: string;
     state: ILitElementStateSettings;
-    prefixEvent: boolean;
     useTagNameForClassName: boolean;
 }
 export interface ILitElementDispatchSettings {
@@ -111,6 +110,8 @@ export default class LitElement extends __LitElement {
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
     static setDefaultProps(selector: string | string[], props: any): void;
+    static _injectedStyles: string[];
+    injectStyle(css: any, id?: string): void;
     /**
      * @name            getDefaultProps
      * @type            Function
@@ -136,7 +137,6 @@ export default class LitElement extends __LitElement {
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
     constructor(settings?: Partial<ILitElementSettings>);
-    firstUpdated(): void;
     _getDocumentFromElement($elm: any): any;
     /**
      * @name           dispatch
@@ -171,8 +171,6 @@ export default class LitElement extends __LitElement {
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
     adoptStyleInShadowRoot($shadowRoot: ShadowRoot, $context?: HTMLElement | typeof document): Promise<any>;
-    static _injectedStyles: string[];
-    injectStyle(css: any, id?: string): void;
     /**
      * @name          cls
      * @type          Function

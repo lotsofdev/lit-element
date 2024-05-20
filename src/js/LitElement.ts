@@ -6,8 +6,9 @@ import {
   __when,
   __whenInViewport,
 } from '@lotsof/sugar/dom';
+
 import { __deepMerge } from '@lotsof/sugar/object';
-import { __uniqid } from '@lotsof/sugar/string';
+import { __camelCase, __uniqid } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
 import { IWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
@@ -26,7 +27,6 @@ export interface ILitElementSettings {
   name: string;
   style: string;
   state: ILitElementStateSettings;
-  prefixEvent: boolean;
   useTagNameForClassName: boolean;
 }
 
@@ -101,7 +101,7 @@ export default class LitElement extends __LitElement {
   mountWhen: 'directly' | 'direct' | 'inViewport' = 'direct';
 
   @property()
-  prefixEvent: boolean = false;
+  prefixEvent: boolean = true;
 
   @property()
   adoptStyle: boolean = true;
@@ -181,6 +181,17 @@ export default class LitElement extends __LitElement {
         ...(this._defaultProps[sel] ?? {}),
         ...props,
       };
+    });
+  }
+
+  static _injectedStyles: string[] = [];
+  injectStyle(css, id = this.tagName) {
+    // @ts-ignore
+    if (this.constructor._injectedStyles.indexOf(id) !== -1) return;
+    // @ts-ignore
+    this.constructor._injectedStyles.push(id);
+    __injectStyle(css, {
+      id,
     });
   }
 
@@ -280,11 +291,11 @@ export default class LitElement extends __LitElement {
     // @ts-ignore
     this.firstUpdated = async () => {
       if (nodeFirstUpdated) {
+        // @ts-ignore
         await nodeFirstUpdated();
       }
       // set the component as mounted
-      // @ts-ignore
-      this.setAttribute('mounted', true);
+      this.setAttribute('mounted', 'true');
     };
 
     // litElement shouldUpdate
@@ -300,27 +311,20 @@ export default class LitElement extends __LitElement {
       return this._shouldUpdate;
     };
 
-    (async () => {
-      const defaultProps = LitElement.getDefaultProps(
-        this.tagName.toLowerCase(),
-      );
+    // (async () => {
+    const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
 
-      const mountWhen =
-        this.getAttribute('mount-when') ?? defaultProps.mountWhen ?? 'direct';
+    const mountWhen =
+      this.getAttribute('mount-when') ?? defaultProps.mountWhen ?? 'direct';
 
-      // component class
-      this.classList.add(...this.cls('').split(' '));
+    // component class
+    this.classList.add(...this.cls('').split(' '));
 
-      // wait until mount
-      await this.waitAndExecute(mountWhen, () => {
-        this._mount();
-      });
-    })();
-  }
-
-  firstUpdated() {
-    // @ts-ignore
-    super.firstUpdated();
+    // wait until mount
+    this.waitAndExecute(mountWhen, () => {
+      this._mount();
+    });
+    // })();
   }
 
   _getDocumentFromElement($elm) {
@@ -362,13 +366,24 @@ export default class LitElement extends __LitElement {
 
     if (this.prefixEvent) {
       // %componentName.%eventName
+      console.log(
+        'di',
+        `${__camelCase(componentName)}.${__camelCase(eventName)} `,
+      );
       finalSettings.$elm.dispatchEvent(
-        new CustomEvent(`${componentName}.${eventName}`, finalSettings),
+        new CustomEvent(
+          `${__camelCase(componentName)}.${__camelCase(eventName)}`,
+          finalSettings,
+        ),
       );
     } else {
       // %eventName
+      console.log(
+        'di',
+        `${__camelCase(componentName)}.${__camelCase(eventName)} `,
+      );
       finalSettings.$elm.dispatchEvent(
-        new CustomEvent(eventName, {
+        new CustomEvent(__camelCase(eventName), {
           ...finalSettings,
           detail: {
             ...finalSettings.detail,
@@ -410,17 +425,6 @@ export default class LitElement extends __LitElement {
     $context?: HTMLElement | typeof document,
   ): Promise<any> {
     return __adoptStyleInShadowRoot($shadowRoot, $context);
-  }
-
-  static _injectedStyles: string[] = [];
-  injectStyle(css, id = this.tagName) {
-    // @ts-ignore
-    if (this.constructor._injectedStyles.indexOf(id) !== -1) return;
-    // @ts-ignore
-    this.constructor._injectedStyles.push(id);
-    __injectStyle(css, {
-      id,
-    });
   }
 
   /**
@@ -495,13 +499,6 @@ export default class LitElement extends __LitElement {
    */
   waitAndExecute(when: string | string[], callback?: Function): Promise<any> {
     return new Promise(async (resolve, reject) => {
-      // make sure to not init components that are in
-      //   if (this.tagName.toLowerCase() !== 's-carpenter') {
-      //     if (document.env?.CARPENTER && !__isInIframe()) {
-      //       return;
-      //     }
-      //   }
-
       if (!Array.isArray(when)) {
         when = [when];
       }
@@ -582,50 +579,6 @@ export default class LitElement extends __LitElement {
       this[name] = value;
     }
 
-    // const properties = (<typeof LitElement>this.constructor).properties;
-
-    // this.props stack
-    // let finalProps = {};
-    // for (let [prop, obj] of Object.entries(properties)) {
-    //   if (this[prop] !== undefined) {
-    //     finalProps[prop] = this[prop];
-    //   }
-
-    //   Object.defineProperty(this.props, prop, {
-    //     enumerable: true,
-    //     get() {
-    //       return _this[prop];
-    //     },
-    //     set(value) {
-    //       // get the value
-    //       value = value?.value ?? value;
-    //       // try to parse JSON if the value is a string
-    //       if (value && typeof value === 'string') {
-    //         try {
-    //           _this[prop] = JSON.parse(value);
-    //           return;
-    //         } catch (e) {}
-    //       }
-    //       // set the value
-    //       _this[prop] = value;
-    //     },
-    //   });
-
-    //   // default props
-    //   if (finalProps[prop] === undefined && this[prop] === undefined) {
-    //     finalProps[prop] = defaultProps[prop] ?? (<any>obj).default;
-    //   }
-    // }
-
-    // const attrs = this.attributes;
-    // for (let [id, attr] of Object.entries(attrs)) {
-    //   if (attr.name.includes('.')) {
-    //     __set(finalProps, __camelCase(attr.name), __parse(attr.value));
-    //   }
-    // }
-
-    // Object.assign(this.props, finalProps);
-
     // make props responsive
     // this.utils.makePropsResponsive(this.props);
 
@@ -638,21 +591,6 @@ export default class LitElement extends __LitElement {
       );
     }
 
-    // handle state if needed
-    // if (this.state) {
-    //   const state = Object.assign({}, this.state);
-    //   delete this.state;
-    //   Object.defineProperty(this, 'state', {
-    //     enumerable: true,
-    //     value: this.utils.handleState(state, {
-    //       save: this.saveState,
-    //     }),
-    //   });
-    //   this.state.$set('*', () => {
-    //     this.requestUpdate();
-    //   });
-    // }
-
     // custom mount function
     if (this.mount && typeof this.mount === 'function') {
       await this.mount();
@@ -662,7 +600,7 @@ export default class LitElement extends __LitElement {
     this._shouldUpdate = true;
     // @ts-ignore
     this.requestUpdate();
-    await this.updateComplete;
+    // await this.updateComplete;
     this.injectStyle(
       // @ts-ignore
       (<typeof LitElement>this.constructor).styles?.cssText ?? '',
