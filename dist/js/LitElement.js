@@ -239,12 +239,10 @@ class LitElement extends __LitElement {
         const componentName = this.name;
         if (this.prefixEvent) {
             // %componentName.%eventName
-            console.log('di', `${__camelCase(componentName)}.${__camelCase(eventName)} `);
             finalSettings.$elm.dispatchEvent(new CustomEvent(`${__camelCase(componentName)}.${__camelCase(eventName)}`, finalSettings));
         }
         else {
             // %eventName
-            console.log('di', `${__camelCase(componentName)}.${__camelCase(eventName)} `);
             finalSettings.$elm.dispatchEvent(new CustomEvent(__camelCase(eventName), Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventComponent: componentName }) })));
         }
         // %componentName

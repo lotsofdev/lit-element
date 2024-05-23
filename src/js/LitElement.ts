@@ -366,10 +366,6 @@ export default class LitElement extends __LitElement {
 
     if (this.prefixEvent) {
       // %componentName.%eventName
-      console.log(
-        'di',
-        `${__camelCase(componentName)}.${__camelCase(eventName)} `,
-      );
       finalSettings.$elm.dispatchEvent(
         new CustomEvent(
           `${__camelCase(componentName)}.${__camelCase(eventName)}`,
@@ -378,10 +374,6 @@ export default class LitElement extends __LitElement {
       );
     } else {
       // %eventName
-      console.log(
-        'di',
-        `${__camelCase(componentName)}.${__camelCase(eventName)} `,
-      );
       finalSettings.$elm.dispatchEvent(
         new CustomEvent(__camelCase(eventName), {
           ...finalSettings,
