@@ -62,13 +62,13 @@ export default class LitElement extends __LitElement {
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
     settings: ILitElementSettings;
-    id: string;
-    verbose: boolean;
-    activeWhen: 'inViewport'[];
-    mountWhen: 'directly' | 'direct' | 'inViewport';
-    prefixEvent: boolean;
-    adoptStyle: boolean;
-    saveState: boolean;
+    accessor id: string;
+    accessor verbose: boolean;
+    accessor activeWhen: 'inViewport'[];
+    accessor mountWhen: 'directly' | 'direct' | 'inViewport';
+    accessor prefixEvent: boolean;
+    accessor adoptStyle: boolean;
+    accessor saveState: boolean;
     _shouldUpdate: boolean;
     _isInViewport: boolean;
     _whenInViewportPromise: IWhenInViewportResult;
@@ -137,6 +137,7 @@ export default class LitElement extends __LitElement {
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
     constructor(settings?: Partial<ILitElementSettings>);
+    log(...args: any[]): void;
     _getDocumentFromElement($elm: any): any;
     /**
      * @name           dispatch

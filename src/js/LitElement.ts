@@ -88,26 +88,26 @@ export default class LitElement extends __LitElement {
    */
   settings: ILitElementSettings;
 
-  @property()
-  id: string = __uniqid();
+  @property({ type: String })
+  accessor id: string = __uniqid();
 
-  @property()
-  verbose: boolean = false;
+  @property({ type: Boolean })
+  accessor verbose: boolean = false;
 
-  @property()
-  activeWhen: 'inViewport'[] = [];
+  @property({ type: Array })
+  accessor activeWhen: 'inViewport'[] = [];
 
-  @property()
-  mountWhen: 'directly' | 'direct' | 'inViewport' = 'direct';
+  @property({ type: String })
+  accessor mountWhen: 'directly' | 'direct' | 'inViewport' = 'direct';
 
-  @property()
-  prefixEvent: boolean = true;
+  @property({ type: Boolean })
+  accessor prefixEvent: boolean = true;
 
-  @property()
-  adoptStyle: boolean = true;
+  @property({ type: Boolean })
+  accessor adoptStyle: boolean = true;
 
-  @property()
-  saveState: boolean = false;
+  @property({ type: Boolean })
+  accessor saveState: boolean = false;
 
   _shouldUpdate = false;
   _isInViewport = false;
@@ -311,20 +311,31 @@ export default class LitElement extends __LitElement {
       return this._shouldUpdate;
     };
 
-    // (async () => {
     const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
 
     const mountWhen =
       this.getAttribute('mount-when') ?? defaultProps.mountWhen ?? 'direct';
 
     // component class
+    console.log('S?', this.cls());
     this.classList.add(...this.cls('').split(' '));
 
     // wait until mount
     this.waitAndExecute(mountWhen, () => {
       this._mount();
     });
-    // })();
+  }
+
+  log(...args) {
+    if (this.verbose) {
+      let logs: any[] = [];
+      logs.push(`[${this.tagName.toLowerCase()}]`);
+      if (this.id !== this.tagName.toLocaleLowerCase()) {
+        logs.push(this.id);
+      }
+      logs = [...logs, ...args];
+      console.log(...logs);
+    }
   }
 
   _getDocumentFromElement($elm) {
@@ -448,10 +459,7 @@ export default class LitElement extends __LitElement {
             );
           }
           // class from the passed "name" in the settings
-          if (
-            this.settings.name &&
-            this.tagName.toLowerCase() !== this.settings.name
-          ) {
+          if (this.settings.name) {
             clses.push(
               `${this.settings.name.toLowerCase()}${
                 clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
@@ -575,13 +583,7 @@ export default class LitElement extends __LitElement {
     // this.utils.makePropsResponsive(this.props);
 
     // verbose
-    if (this.verbose) {
-      console.log(
-        `[${this.tagName.toLowerCase()}]${
-          this.id ? ` #${this.id} ` : ' '
-        }mounting`,
-      );
-    }
+    this.log('Mounting...');
 
     // custom mount function
     if (this.mount && typeof this.mount === 'function') {
