@@ -1,19 +1,6 @@
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { IWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
 export { __html as html };
-export interface ILitElementStateSettings {
-    save: boolean;
-    id: string;
-}
-export interface ILitElementSettings {
-    rootNode?: HTMLElement;
-    shadowDom?: boolean;
-    defaultProps?: any;
-    name: string;
-    style: string;
-    state: ILitElementStateSettings;
-    useTagNameForClassName: boolean;
-}
 export interface ILitElementDispatchSettings {
     $elm: HTMLElement;
     bubbles: boolean;
@@ -36,45 +23,29 @@ export interface ISLitElementDefaultProps {
     mountWhen: 'directly' | 'direct' | 'inViewport';
     adoptStyle: boolean;
     saveState: boolean;
+    stateId: string;
+    shadowDom: boolean;
 }
 export default class LitElement extends __LitElement {
     static _keepInjectedCssBeforeStylesheetLinksInited: boolean;
     static _defaultProps: Record<string, Record<string, any>>;
-    /**
-     * @name            name
-     * @type            string
-     * @private
-     *
-     * Store the name
-     *
-     * @since       2.0.0
-     * @author 		Olivier Bossel<olivier.bossel@gmail.com>
-     */
-    name: string;
-    /**
-     * @name            settings
-     * @type            Object
-     * @private
-     *
-     * Store the settings
-     *
-     * @since       2.0.0
-     * @author 		Olivier Bossel<olivier.bossel@gmail.com>
-     */
-    settings: ILitElementSettings;
     accessor id: string;
+    accessor name: string;
     accessor verbose: boolean;
     accessor activeWhen: 'inViewport'[];
     accessor mountWhen: 'directly' | 'direct' | 'inViewport';
     accessor prefixEvent: boolean;
     accessor adoptStyle: boolean;
     accessor saveState: boolean;
+    accessor stateId: string;
+    accessor shadowDom: boolean;
+    accessor lnf: boolean;
     _shouldUpdate: boolean;
     _isInViewport: boolean;
     _whenInViewportPromise: IWhenInViewportResult;
     _state: ILitElementState;
     get state(): ILitElementState;
-    set state(state: ILitElementState);
+    set state(state: any);
     /**
      * @name            define
      * @type            Function
@@ -136,7 +107,8 @@ export default class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    constructor(settings?: Partial<ILitElementSettings>);
+    constructor();
+    connectedCallback(): void;
     log(...args: any[]): void;
     _getDocumentFromElement($elm: any): any;
     /**

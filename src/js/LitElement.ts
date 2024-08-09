@@ -7,28 +7,12 @@ import {
   __whenInViewport,
 } from '@lotsof/sugar/dom';
 
-import { __deepMerge } from '@lotsof/sugar/object';
 import { __camelCase, __uniqid } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
 import { IWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
 
 export { __html as html };
-
-export interface ILitElementStateSettings {
-  save: boolean;
-  id: string;
-}
-
-export interface ILitElementSettings {
-  rootNode?: HTMLElement;
-  shadowDom?: boolean;
-  defaultProps?: any;
-  name: string;
-  style: string;
-  state: ILitElementStateSettings;
-  useTagNameForClassName: boolean;
-}
 
 export interface ILitElementDispatchSettings {
   $elm: HTMLElement;
@@ -55,6 +39,8 @@ export interface ISLitElementDefaultProps {
   mountWhen: 'directly' | 'direct' | 'inViewport';
   adoptStyle: boolean;
   saveState: boolean;
+  stateId: string;
+  shadowDom: boolean;
 }
 
 // up
@@ -64,32 +50,11 @@ export default class LitElement extends __LitElement {
 
   static _defaultProps: Record<string, Record<string, any>> = {};
 
-  /**
-   * @name            name
-   * @type            string
-   * @private
-   *
-   * Store the name
-   *
-   * @since       2.0.0
-   * @author 		Olivier Bossel<olivier.bossel@gmail.com>
-   */
-  name: string;
-
-  /**
-   * @name            settings
-   * @type            Object
-   * @private
-   *
-   * Store the settings
-   *
-   * @since       2.0.0
-   * @author 		Olivier Bossel<olivier.bossel@gmail.com>
-   */
-  settings: ILitElementSettings;
-
   @property({ type: String })
   accessor id: string = __uniqid();
+
+  @property({ type: String })
+  accessor name: string = '';
 
   @property({ type: Boolean })
   accessor verbose: boolean = false;
@@ -109,6 +74,15 @@ export default class LitElement extends __LitElement {
   @property({ type: Boolean })
   accessor saveState: boolean = false;
 
+  @property({ type: String })
+  accessor stateId: string = '';
+
+  @property({ type: Boolean })
+  accessor shadowDom: boolean = false;
+
+  @property({ type: Boolean })
+  accessor lnf: boolean = false;
+
   _shouldUpdate = false;
   _isInViewport = false;
   _whenInViewportPromise: IWhenInViewportResult;
@@ -116,11 +90,31 @@ export default class LitElement extends __LitElement {
   _state: ILitElementState = {
     status: 'idle',
   };
-  get state() {
+  get state(): ILitElementState {
+    if (this.saveState) {
+      try {
+        const savedState = JSON.parse(
+          localStorage.getItem(this.stateId || this.id) ?? '{}',
+        );
+        return savedState;
+      } catch (e) {}
+    }
     return this._state;
   }
-  set state(state) {
+  set state(state: any) {
     Object.assign(this._state, state);
+
+    if (this.saveState) {
+      if (!this.stateId && !this.id) {
+        throw new Error(
+          `To save the state, you need to set a "stateId" or an "id"`,
+        );
+      }
+      localStorage.setItem(
+        this.stateId || this.id,
+        JSON.stringify(this._state),
+      );
+    }
   }
 
   /**
@@ -225,35 +219,8 @@ export default class LitElement extends __LitElement {
    * @since       2.0.0
    * @author 		Olivier Bossel<olivier.bossel@gmail.com>
    */
-  constructor(settings?: Partial<ILitElementSettings>) {
+  constructor() {
     super();
-    this.name = settings?.name ?? this.tagName.toLowerCase();
-
-    this.settings = __deepMerge(
-      {
-        shadowDom: false,
-        get rootNode() {
-          return this.shadowRoot?.querySelector('*:first-child');
-        },
-      },
-      settings ?? {},
-    );
-
-    // shadow handler
-    if (this.settings.shadowDom === false) {
-      this.createRenderRoot = () => {
-        return this;
-      };
-    }
-
-    // check if we need to inject the css into the
-    // document that is not the same as the app one
-    const doc = this._getDocumentFromElement(this);
-    if (document !== doc && (<typeof LitElement>this.constructor).styles) {
-      __injectStyle((<typeof LitElement>this.constructor).styles, {
-        rootNode: doc,
-      });
-    }
 
     // monitor if the component is in viewport or not
     this._whenInViewportPromise = __whenInViewport(this, {
@@ -265,26 +232,6 @@ export default class LitElement extends __LitElement {
         this._isInViewport = false;
       },
     });
-
-    // make sure the injected styles stays BEFORE the link[rel="stylesheet"]
-    // to avoid style override
-    if (!LitElement._keepInjectedCssBeforeStylesheetLinksInited) {
-      const $firstStylesheetLink = document.head.querySelector(
-        'link[rel="stylesheet"]',
-      );
-      __querySelectorLive(
-        'style',
-        ($style) => {
-          if ($firstStylesheetLink) {
-            document.head.insertBefore($style, $firstStylesheetLink);
-          }
-        },
-        {
-          rootNode: document.head,
-        },
-      );
-      LitElement._keepInjectedCssBeforeStylesheetLinksInited = true;
-    }
 
     // @ts-ignore
     const nodeFirstUpdated = this.firstUpdated?.bind(this);
@@ -312,18 +259,68 @@ export default class LitElement extends __LitElement {
     };
 
     const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
-
     const mountWhen =
-      this.getAttribute('mount-when') ?? defaultProps.mountWhen ?? 'direct';
-
-    // component class
-    console.log('S?', this.cls());
-    this.classList.add(...this.cls('').split(' '));
+      this.getAttribute('mountWhen') ?? defaultProps.mountWhen ?? 'direct';
 
     // wait until mount
     this.waitAndExecute(mountWhen, () => {
       this._mount();
     });
+  }
+
+  connectedCallback(): void {
+    // default props
+    const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
+    for (let [name, value] of Object.entries(defaultProps)) {
+      this[name] = value;
+    }
+
+    // component class
+    this.classList.add(...this.cls('').split(' '));
+
+    // look and feel class
+    console.log('lnf', this.lnf);
+    if (this.lnf) {
+      this.classList.add('-lnf');
+    }
+
+    // shadow handler
+    if (this.shadowDom === false) {
+      this.createRenderRoot = () => {
+        return this;
+      };
+    }
+
+    // check if we need to inject the css into the
+    // document that is not the same as the app one
+    const doc = this._getDocumentFromElement(this);
+    if (document !== doc && (<typeof LitElement>this.constructor).styles) {
+      __injectStyle((<typeof LitElement>this.constructor).styles, {
+        rootNode: doc,
+      });
+    }
+
+    // make sure the injected styles stays BEFORE the link[rel="stylesheet"]
+    // to avoid style override
+    if (!LitElement._keepInjectedCssBeforeStylesheetLinksInited) {
+      const $firstStylesheetLink = document.head.querySelector(
+        'link[rel="stylesheet"]',
+      );
+      __querySelectorLive(
+        'style',
+        ($style) => {
+          if ($firstStylesheetLink) {
+            document.head.insertBefore($style, $firstStylesheetLink);
+          }
+        },
+        {
+          rootNode: document.head,
+        },
+      );
+      LitElement._keepInjectedCssBeforeStylesheetLinksInited = true;
+    }
+
+    super.connectedCallback();
   }
 
   log(...args) {
@@ -373,39 +370,44 @@ export default class LitElement extends __LitElement {
       ...(settings ?? {}),
     };
 
-    const componentName = this.name;
-
     if (this.prefixEvent) {
+      if (this.name && this.name !== this.tagName.toLowerCase()) {
+        this.log(
+          'Dispatching event',
+          `${__camelCase(this.name)}.${__camelCase(eventName)}`,
+        );
+        // %componentName.%eventName
+        finalSettings.$elm.dispatchEvent(
+          new CustomEvent(
+            `${__camelCase(this.name)}.${__camelCase(eventName)}`,
+            finalSettings,
+          ),
+        );
+      }
+      this.log(
+        'Dispatching event',
+        `${__camelCase(this.tagName)}.${__camelCase(eventName)}`,
+      );
       // %componentName.%eventName
       finalSettings.$elm.dispatchEvent(
         new CustomEvent(
-          `${__camelCase(componentName)}.${__camelCase(eventName)}`,
+          `${__camelCase(this.tagName)}.${__camelCase(eventName)}`,
           finalSettings,
         ),
       );
     } else {
+      this.log('Dispatching event', `${__camelCase(eventName)}`);
       // %eventName
       finalSettings.$elm.dispatchEvent(
         new CustomEvent(__camelCase(eventName), {
           ...finalSettings,
           detail: {
             ...finalSettings.detail,
-            eventComponent: componentName,
+            eventComponent: this.name,
           },
         }),
       );
     }
-
-    // %componentName
-    finalSettings.$elm.dispatchEvent(
-      new CustomEvent(componentName, {
-        ...finalSettings,
-        detail: {
-          ...finalSettings.detail,
-          eventType: eventName,
-        },
-      }),
-    );
   }
 
   /**
@@ -442,26 +444,32 @@ export default class LitElement extends __LitElement {
    * @since         2.0.0
    * @author 		Olivier Bossel<olivier.bossel@gmail.com>
    */
-  cls(cls = '', style = '') {
+  cls(cls: string = '', style: string = ''): string {
     let clsString = '';
 
-    if (cls !== null) {
+    if (!cls) {
+      cls = this.tagName.toLowerCase();
+      if (this.name && this.name !== this.tagName.toLowerCase()) {
+        cls += ` ${this.name.toLowerCase()}`;
+      }
+      return cls;
+    }
+
+    if (cls) {
       clsString = cls
         .split(' ')
         .map((clsName) => {
           let clses: string[] = [];
           // class from the component tagname if wanted
-          if (this.settings.useTagNameForClassName) {
+          clses.push(
+            `${this.tagName.toLowerCase()}${
+              clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
+            }${clsName}`,
+          );
+          // if a special "name" is setted
+          if (this.name && this.name !== this.tagName.toLowerCase()) {
             clses.push(
-              `${this.tagName.toLowerCase()}${
-                clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
-              }${clsName}`,
-            );
-          }
-          // class from the passed "name" in the settings
-          if (this.settings.name) {
-            clses.push(
-              `${this.settings.name.toLowerCase()}${
+              `${this.name.toLowerCase()}${
                 clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
               }${clsName}`,
             );
@@ -572,13 +580,6 @@ export default class LitElement extends __LitElement {
    */
   protected mount() {}
   private async _mount() {
-    const _this = this,
-      defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
-
-    for (let [name, value] of Object.entries(defaultProps)) {
-      this[name] = value;
-    }
-
     // make props responsive
     // this.utils.makePropsResponsive(this.props);
 

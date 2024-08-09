@@ -24,10 +24,9 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _LitElement_id_accessor_storage, _LitElement_verbose_accessor_storage, _LitElement_activeWhen_accessor_storage, _LitElement_mountWhen_accessor_storage, _LitElement_prefixEvent_accessor_storage, _LitElement_adoptStyle_accessor_storage, _LitElement_saveState_accessor_storage;
+var _LitElement_id_accessor_storage, _LitElement_name_accessor_storage, _LitElement_verbose_accessor_storage, _LitElement_activeWhen_accessor_storage, _LitElement_mountWhen_accessor_storage, _LitElement_prefixEvent_accessor_storage, _LitElement_adoptStyle_accessor_storage, _LitElement_saveState_accessor_storage, _LitElement_stateId_accessor_storage, _LitElement_shadowDom_accessor_storage, _LitElement_lnf_accessor_storage;
 import { __wait } from '@lotsof/sugar/datetime';
 import { __adoptStyleInShadowRoot, __injectStyle, __querySelectorLive, __when, __whenInViewport, } from '@lotsof/sugar/dom';
-import { __deepMerge } from '@lotsof/sugar/object';
 import { __camelCase, __uniqid } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
@@ -36,6 +35,8 @@ export { __html as html };
 class LitElement extends __LitElement {
     get id() { return __classPrivateFieldGet(this, _LitElement_id_accessor_storage, "f"); }
     set id(value) { __classPrivateFieldSet(this, _LitElement_id_accessor_storage, value, "f"); }
+    get name() { return __classPrivateFieldGet(this, _LitElement_name_accessor_storage, "f"); }
+    set name(value) { __classPrivateFieldSet(this, _LitElement_name_accessor_storage, value, "f"); }
     get verbose() { return __classPrivateFieldGet(this, _LitElement_verbose_accessor_storage, "f"); }
     set verbose(value) { __classPrivateFieldSet(this, _LitElement_verbose_accessor_storage, value, "f"); }
     get activeWhen() { return __classPrivateFieldGet(this, _LitElement_activeWhen_accessor_storage, "f"); }
@@ -48,11 +49,31 @@ class LitElement extends __LitElement {
     set adoptStyle(value) { __classPrivateFieldSet(this, _LitElement_adoptStyle_accessor_storage, value, "f"); }
     get saveState() { return __classPrivateFieldGet(this, _LitElement_saveState_accessor_storage, "f"); }
     set saveState(value) { __classPrivateFieldSet(this, _LitElement_saveState_accessor_storage, value, "f"); }
+    get stateId() { return __classPrivateFieldGet(this, _LitElement_stateId_accessor_storage, "f"); }
+    set stateId(value) { __classPrivateFieldSet(this, _LitElement_stateId_accessor_storage, value, "f"); }
+    get shadowDom() { return __classPrivateFieldGet(this, _LitElement_shadowDom_accessor_storage, "f"); }
+    set shadowDom(value) { __classPrivateFieldSet(this, _LitElement_shadowDom_accessor_storage, value, "f"); }
+    get lnf() { return __classPrivateFieldGet(this, _LitElement_lnf_accessor_storage, "f"); }
+    set lnf(value) { __classPrivateFieldSet(this, _LitElement_lnf_accessor_storage, value, "f"); }
     get state() {
+        var _a;
+        if (this.saveState) {
+            try {
+                const savedState = JSON.parse((_a = localStorage.getItem(this.stateId || this.id)) !== null && _a !== void 0 ? _a : '{}');
+                return savedState;
+            }
+            catch (e) { }
+        }
         return this._state;
     }
     set state(state) {
         Object.assign(this._state, state);
+        if (this.saveState) {
+            if (!this.stateId && !this.id) {
+                throw new Error(`To save the state, you need to set a "stateId" or an "id"`);
+            }
+            localStorage.setItem(this.stateId || this.id, JSON.stringify(this._state));
+        }
     }
     /**
      * @name            define
@@ -143,31 +164,81 @@ class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    constructor(settings) {
-        var _a, _b, _c, _d, _e;
+    constructor() {
+        var _a, _b, _c, _d;
         super();
         _LitElement_id_accessor_storage.set(this, __uniqid());
+        _LitElement_name_accessor_storage.set(this, '');
         _LitElement_verbose_accessor_storage.set(this, false);
         _LitElement_activeWhen_accessor_storage.set(this, []);
         _LitElement_mountWhen_accessor_storage.set(this, 'direct');
         _LitElement_prefixEvent_accessor_storage.set(this, true);
         _LitElement_adoptStyle_accessor_storage.set(this, true);
         _LitElement_saveState_accessor_storage.set(this, false);
+        _LitElement_stateId_accessor_storage.set(this, '');
+        _LitElement_shadowDom_accessor_storage.set(this, false);
+        _LitElement_lnf_accessor_storage.set(this, false);
         this._shouldUpdate = false;
         this._isInViewport = false;
         this._state = {
             status: 'idle',
         };
-        this.name = (_a = settings === null || settings === void 0 ? void 0 : settings.name) !== null && _a !== void 0 ? _a : this.tagName.toLowerCase();
-        this.settings = __deepMerge({
-            shadowDom: false,
-            get rootNode() {
-                var _a;
-                return (_a = this.shadowRoot) === null || _a === void 0 ? void 0 : _a.querySelector('*:first-child');
+        // monitor if the component is in viewport or not
+        this._whenInViewportPromise = __whenInViewport(this, {
+            once: false,
+            whenIn: () => {
+                this._isInViewport = true;
             },
-        }, settings !== null && settings !== void 0 ? settings : {});
+            whenOut: () => {
+                this._isInViewport = false;
+            },
+        });
+        // @ts-ignore
+        const nodeFirstUpdated = (_a = this.firstUpdated) === null || _a === void 0 ? void 0 : _a.bind(this);
+        // @ts-ignore
+        this.firstUpdated = () => __awaiter(this, void 0, void 0, function* () {
+            if (nodeFirstUpdated) {
+                // @ts-ignore
+                yield nodeFirstUpdated();
+            }
+            // set the component as mounted
+            this.setAttribute('mounted', 'true');
+        });
+        // litElement shouldUpdate
+        // @ts-ignore
+        const nodeShouldUpdate = (_b = this.shouldUpdate) === null || _b === void 0 ? void 0 : _b.bind(this);
+        // @ts-ignore
+        this.shouldUpdate = () => {
+            if (nodeShouldUpdate) {
+                // @ts-ignore
+                const res = nodeShouldUpdate();
+                if (!res)
+                    return false;
+            }
+            return this._shouldUpdate;
+        };
+        const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
+        const mountWhen = (_d = (_c = this.getAttribute('mountWhen')) !== null && _c !== void 0 ? _c : defaultProps.mountWhen) !== null && _d !== void 0 ? _d : 'direct';
+        // wait until mount
+        this.waitAndExecute(mountWhen, () => {
+            this._mount();
+        });
+    }
+    connectedCallback() {
+        // default props
+        const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
+        for (let [name, value] of Object.entries(defaultProps)) {
+            this[name] = value;
+        }
+        // component class
+        this.classList.add(...this.cls('').split(' '));
+        // look and feel class
+        console.log('lnf', this.lnf);
+        if (this.lnf) {
+            this.classList.add('-lnf');
+        }
         // shadow handler
-        if (this.settings.shadowDom === false) {
+        if (this.shadowDom === false) {
             this.createRenderRoot = () => {
                 return this;
             };
@@ -180,16 +251,6 @@ class LitElement extends __LitElement {
                 rootNode: doc,
             });
         }
-        // monitor if the component is in viewport or not
-        this._whenInViewportPromise = __whenInViewport(this, {
-            once: false,
-            whenIn: () => {
-                this._isInViewport = true;
-            },
-            whenOut: () => {
-                this._isInViewport = false;
-            },
-        });
         // make sure the injected styles stays BEFORE the link[rel="stylesheet"]
         // to avoid style override
         if (!LitElement._keepInjectedCssBeforeStylesheetLinksInited) {
@@ -203,39 +264,7 @@ class LitElement extends __LitElement {
             });
             LitElement._keepInjectedCssBeforeStylesheetLinksInited = true;
         }
-        // @ts-ignore
-        const nodeFirstUpdated = (_b = this.firstUpdated) === null || _b === void 0 ? void 0 : _b.bind(this);
-        // @ts-ignore
-        this.firstUpdated = () => __awaiter(this, void 0, void 0, function* () {
-            if (nodeFirstUpdated) {
-                // @ts-ignore
-                yield nodeFirstUpdated();
-            }
-            // set the component as mounted
-            this.setAttribute('mounted', 'true');
-        });
-        // litElement shouldUpdate
-        // @ts-ignore
-        const nodeShouldUpdate = (_c = this.shouldUpdate) === null || _c === void 0 ? void 0 : _c.bind(this);
-        // @ts-ignore
-        this.shouldUpdate = () => {
-            if (nodeShouldUpdate) {
-                // @ts-ignore
-                const res = nodeShouldUpdate();
-                if (!res)
-                    return false;
-            }
-            return this._shouldUpdate;
-        };
-        const defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
-        const mountWhen = (_e = (_d = this.getAttribute('mount-when')) !== null && _d !== void 0 ? _d : defaultProps.mountWhen) !== null && _e !== void 0 ? _e : 'direct';
-        // component class
-        console.log('S?', this.cls());
-        this.classList.add(...this.cls('').split(' '));
-        // wait until mount
-        this.waitAndExecute(mountWhen, () => {
-            this._mount();
-        });
+        super.connectedCallback();
     }
     log(...args) {
         if (this.verbose) {
@@ -272,17 +301,21 @@ class LitElement extends __LitElement {
      */
     dispatch(eventName, settings) {
         const finalSettings = Object.assign({ $elm: this, bubbles: true, cancelable: true, detail: {} }, (settings !== null && settings !== void 0 ? settings : {}));
-        const componentName = this.name;
         if (this.prefixEvent) {
+            if (this.name && this.name !== this.tagName.toLowerCase()) {
+                this.log('Dispatching event', `${__camelCase(this.name)}.${__camelCase(eventName)}`);
+                // %componentName.%eventName
+                finalSettings.$elm.dispatchEvent(new CustomEvent(`${__camelCase(this.name)}.${__camelCase(eventName)}`, finalSettings));
+            }
+            this.log('Dispatching event', `${__camelCase(this.tagName)}.${__camelCase(eventName)}`);
             // %componentName.%eventName
-            finalSettings.$elm.dispatchEvent(new CustomEvent(`${__camelCase(componentName)}.${__camelCase(eventName)}`, finalSettings));
+            finalSettings.$elm.dispatchEvent(new CustomEvent(`${__camelCase(this.tagName)}.${__camelCase(eventName)}`, finalSettings));
         }
         else {
+            this.log('Dispatching event', `${__camelCase(eventName)}`);
             // %eventName
-            finalSettings.$elm.dispatchEvent(new CustomEvent(__camelCase(eventName), Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventComponent: componentName }) })));
+            finalSettings.$elm.dispatchEvent(new CustomEvent(__camelCase(eventName), Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventComponent: this.name }) })));
         }
-        // %componentName
-        finalSettings.$elm.dispatchEvent(new CustomEvent(componentName, Object.assign(Object.assign({}, finalSettings), { detail: Object.assign(Object.assign({}, finalSettings.detail), { eventType: eventName }) })));
     }
     /**
      * @name        adoptStyleInShadowRoot
@@ -316,18 +349,23 @@ class LitElement extends __LitElement {
      */
     cls(cls = '', style = '') {
         let clsString = '';
-        if (cls !== null) {
+        if (!cls) {
+            cls = this.tagName.toLowerCase();
+            if (this.name && this.name !== this.tagName.toLowerCase()) {
+                cls += ` ${this.name.toLowerCase()}`;
+            }
+            return cls;
+        }
+        if (cls) {
             clsString = cls
                 .split(' ')
                 .map((clsName) => {
                 let clses = [];
                 // class from the component tagname if wanted
-                if (this.settings.useTagNameForClassName) {
-                    clses.push(`${this.tagName.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
-                }
-                // class from the passed "name" in the settings
-                if (this.settings.name) {
-                    clses.push(`${this.settings.name.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
+                clses.push(`${this.tagName.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
+                // if a special "name" is setted
+                if (this.name && this.name !== this.tagName.toLowerCase()) {
+                    clses.push(`${this.name.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
                 }
                 // replace '---' by '--'
                 clses = clses.map((c) => c.replace('---', '--'));
@@ -427,13 +465,9 @@ class LitElement extends __LitElement {
     mount() { }
     _mount() {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            const _this = this, defaultProps = LitElement.getDefaultProps(this.tagName.toLowerCase());
-            for (let [name, value] of Object.entries(defaultProps)) {
-                this[name] = value;
-            }
             // make props responsive
             // this.utils.makePropsResponsive(this.props);
+            var _a, _b;
             // verbose
             this.log('Mounting...');
             // custom mount function
@@ -460,7 +494,7 @@ class LitElement extends __LitElement {
         (_b = (_a = this._whenInViewportPromise).cancel) === null || _b === void 0 ? void 0 : _b.call(_a);
     }
 }
-_LitElement_id_accessor_storage = new WeakMap(), _LitElement_verbose_accessor_storage = new WeakMap(), _LitElement_activeWhen_accessor_storage = new WeakMap(), _LitElement_mountWhen_accessor_storage = new WeakMap(), _LitElement_prefixEvent_accessor_storage = new WeakMap(), _LitElement_adoptStyle_accessor_storage = new WeakMap(), _LitElement_saveState_accessor_storage = new WeakMap();
+_LitElement_id_accessor_storage = new WeakMap(), _LitElement_name_accessor_storage = new WeakMap(), _LitElement_verbose_accessor_storage = new WeakMap(), _LitElement_activeWhen_accessor_storage = new WeakMap(), _LitElement_mountWhen_accessor_storage = new WeakMap(), _LitElement_prefixEvent_accessor_storage = new WeakMap(), _LitElement_adoptStyle_accessor_storage = new WeakMap(), _LitElement_saveState_accessor_storage = new WeakMap(), _LitElement_stateId_accessor_storage = new WeakMap(), _LitElement_shadowDom_accessor_storage = new WeakMap(), _LitElement_lnf_accessor_storage = new WeakMap();
 LitElement._keepInjectedCssBeforeStylesheetLinksInited = false;
 LitElement._defaultProps = {};
 LitElement._injectedStyles = [];
@@ -468,6 +502,9 @@ export default LitElement;
 __decorate([
     property({ type: String })
 ], LitElement.prototype, "id", null);
+__decorate([
+    property({ type: String })
+], LitElement.prototype, "name", null);
 __decorate([
     property({ type: Boolean })
 ], LitElement.prototype, "verbose", null);
@@ -486,4 +523,13 @@ __decorate([
 __decorate([
     property({ type: Boolean })
 ], LitElement.prototype, "saveState", null);
+__decorate([
+    property({ type: String })
+], LitElement.prototype, "stateId", null);
+__decorate([
+    property({ type: Boolean })
+], LitElement.prototype, "shadowDom", null);
+__decorate([
+    property({ type: Boolean })
+], LitElement.prototype, "lnf", null);
 //# sourceMappingURL=LitElement.js.map
