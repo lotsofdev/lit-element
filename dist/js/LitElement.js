@@ -31,7 +31,6 @@ import { __camelCase, __uniqid } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
 export { __html as html };
-// up
 class LitElement extends __LitElement {
     get id() { return __classPrivateFieldGet(this, _LitElement_id_accessor_storage, "f"); }
     set id(value) { __classPrivateFieldSet(this, _LitElement_id_accessor_storage, value, "f"); }
@@ -164,7 +163,7 @@ class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    constructor() {
+    constructor(internalName) {
         var _a, _b, _c, _d;
         super();
         _LitElement_id_accessor_storage.set(this, __uniqid());
@@ -178,11 +177,15 @@ class LitElement extends __LitElement {
         _LitElement_stateId_accessor_storage.set(this, '');
         _LitElement_shadowDom_accessor_storage.set(this, false);
         _LitElement_lnf_accessor_storage.set(this, false);
+        this._internalName = this.tagName.toLowerCase();
         this._shouldUpdate = false;
         this._isInViewport = false;
         this._state = {
             status: 'idle',
         };
+        if (internalName) {
+            this._internalName = internalName;
+        }
         // monitor if the component is in viewport or not
         this._whenInViewportPromise = __whenInViewport(this, {
             once: false,
@@ -294,7 +297,7 @@ class LitElement extends __LitElement {
      * 3. An event called "%eventName" with in the detail object a "eventComponent" property set to the component name
      *
      * @param           {String}            eventName     The event name to dispatch
-     * @param           {ILitElementDispatchSettings}          [settings={}]     The settings to use for the dispatch
+     * @param           {TLitElementDispatchSettings}          [settings={}]     The settings to use for the dispatch
      *
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
@@ -351,28 +354,33 @@ class LitElement extends __LitElement {
         let clsString = '';
         if (!cls) {
             cls = this.tagName.toLowerCase();
+            if (this._internalName !== cls) {
+                cls += ` ${this._internalName}`;
+            }
             if (this.name && this.name !== this.tagName.toLowerCase()) {
                 cls += ` ${this.name.toLowerCase()}`;
             }
             return cls;
         }
-        if (cls) {
-            clsString = cls
-                .split(' ')
-                .map((clsName) => {
-                let clses = [];
-                // class from the component tagname if wanted
-                clses.push(`${this.tagName.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
-                // if a special "name" is setted
-                if (this.name && this.name !== this.tagName.toLowerCase()) {
-                    clses.push(`${this.name.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
-                }
-                // replace '---' by '--'
-                clses = clses.map((c) => c.replace('---', '--'));
-                return clses.join(' ');
-            })
-                .join(' ');
-        }
+        clsString = cls
+            .split(' ')
+            .map((clsName) => {
+            let clses = [];
+            // internal name
+            if (this.tagName.toLowerCase() !== this._internalName) {
+                clses.push(`${this._internalName.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
+            }
+            // class from the component tagname if wanted
+            clses.push(`${this.tagName.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
+            // if a special "name" is setted
+            if (this.name && this.name !== this.tagName.toLowerCase()) {
+                clses.push(`${this.name.toLowerCase()}${clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''}${clsName}`);
+            }
+            // replace '---' by '--'
+            clses = clses.map((c) => c.replace('---', '--'));
+            return clses.join(' ');
+        })
+            .join(' ');
         if (style) {
             clsString += ` ${style}`;
         }

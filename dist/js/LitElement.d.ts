@@ -1,20 +1,20 @@
 import { LitElement as __LitElement, html as __html } from 'lit';
-import { IWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
+import { TWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
 export { __html as html };
-export interface ILitElementDispatchSettings {
+export type TLitElementDispatchSettings = {
     $elm: HTMLElement;
     bubbles: boolean;
     cancelable: boolean;
     detail: any;
-}
-export interface ILitElementState {
+};
+export type TLitElementState = {
     status: 'idle' | 'error';
     [key: string]: any;
-}
-export interface ILitElementDefineSettings {
+};
+export type TLitElementDefineSettings = {
     window?: any;
-}
-export interface ISLitElementDefaultProps {
+};
+export type TSLitElementDefaultProps = {
     id: string;
     lnf: string;
     verbose: boolean;
@@ -25,7 +25,8 @@ export interface ISLitElementDefaultProps {
     saveState: boolean;
     stateId: string;
     shadowDom: boolean;
-}
+};
+export type TSLitElementSettings = {};
 export default class LitElement extends __LitElement {
     static _keepInjectedCssBeforeStylesheetLinksInited: boolean;
     static _defaultProps: Record<string, Record<string, any>>;
@@ -40,11 +41,12 @@ export default class LitElement extends __LitElement {
     accessor stateId: string;
     accessor shadowDom: boolean;
     accessor lnf: boolean;
+    protected _internalName: string;
     _shouldUpdate: boolean;
     _isInViewport: boolean;
-    _whenInViewportPromise: IWhenInViewportResult;
-    _state: ILitElementState;
-    get state(): ILitElementState;
+    _whenInViewportPromise: TWhenInViewportResult;
+    _state: TLitElementState;
+    get state(): TLitElementState;
     set state(state: any);
     /**
      * @name            define
@@ -63,7 +65,7 @@ export default class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    static define(tagName: string, Cls: typeof LitElement, props?: any, settings?: Partial<ILitElementDefineSettings>): void;
+    static define(tagName: string, Cls: typeof LitElement, props?: any, settings?: Partial<TLitElementDefineSettings>): void;
     /**
      * @name            setDefaultProps
      * @type            Function
@@ -107,7 +109,7 @@ export default class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    constructor();
+    constructor(internalName: string);
     connectedCallback(): void;
     log(...args: any[]): void;
     _getDocumentFromElement($elm: any): any;
@@ -122,12 +124,12 @@ export default class LitElement extends __LitElement {
      * 3. An event called "%eventName" with in the detail object a "eventComponent" property set to the component name
      *
      * @param           {String}            eventName     The event name to dispatch
-     * @param           {ILitElementDispatchSettings}          [settings={}]     The settings to use for the dispatch
+     * @param           {TLitElementDispatchSettings}          [settings={}]     The settings to use for the dispatch
      *
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    dispatch(eventName: string, settings?: Partial<ILitElementDispatchSettings>): void;
+    dispatch(eventName: string, settings?: Partial<TLitElementDispatchSettings>): void;
     /**
      * @name        adoptStyleInShadowRoot
      * @type        Function

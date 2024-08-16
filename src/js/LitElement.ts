@@ -10,27 +10,27 @@ import {
 import { __camelCase, __uniqid } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
-import { IWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
+import { TWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
 
 export { __html as html };
 
-export interface ILitElementDispatchSettings {
+export type TLitElementDispatchSettings = {
   $elm: HTMLElement;
   bubbles: boolean;
   cancelable: boolean;
   detail: any;
-}
+};
 
-export interface ILitElementState {
+export type TLitElementState = {
   status: 'idle' | 'error';
   [key: string]: any;
-}
+};
 
-export interface ILitElementDefineSettings {
+export type TLitElementDefineSettings = {
   window?: any;
-}
+};
 
-export interface ISLitElementDefaultProps {
+export type TSLitElementDefaultProps = {
   id: string;
   lnf: string;
   verbose: boolean;
@@ -41,9 +41,9 @@ export interface ISLitElementDefaultProps {
   saveState: boolean;
   stateId: string;
   shadowDom: boolean;
-}
+};
 
-// up
+export type TSLitElementSettings = {};
 
 export default class LitElement extends __LitElement {
   static _keepInjectedCssBeforeStylesheetLinksInited = false;
@@ -83,14 +83,16 @@ export default class LitElement extends __LitElement {
   @property({ type: Boolean })
   accessor lnf: boolean = false;
 
+  protected _internalName: string = this.tagName.toLowerCase();
+
   _shouldUpdate = false;
   _isInViewport = false;
-  _whenInViewportPromise: IWhenInViewportResult;
+  _whenInViewportPromise: TWhenInViewportResult;
 
-  _state: ILitElementState = {
+  _state: TLitElementState = {
     status: 'idle',
   };
-  get state(): ILitElementState {
+  get state(): TLitElementState {
     if (this.saveState) {
       try {
         const savedState = JSON.parse(
@@ -138,7 +140,7 @@ export default class LitElement extends __LitElement {
     tagName: string,
     Cls: typeof LitElement,
     props: any = {},
-    settings: Partial<ILitElementDefineSettings> = {},
+    settings: Partial<TLitElementDefineSettings> = {},
   ) {
     // set the default props
     LitElement.setDefaultProps(tagName, props);
@@ -219,8 +221,11 @@ export default class LitElement extends __LitElement {
    * @since       2.0.0
    * @author 		Olivier Bossel<olivier.bossel@gmail.com>
    */
-  constructor() {
+  constructor(internalName: string) {
     super();
+    if (internalName) {
+      this._internalName = internalName;
+    }
 
     // monitor if the component is in viewport or not
     this._whenInViewportPromise = __whenInViewport(this, {
@@ -353,16 +358,16 @@ export default class LitElement extends __LitElement {
    * 3. An event called "%eventName" with in the detail object a "eventComponent" property set to the component name
    *
    * @param           {String}            eventName     The event name to dispatch
-   * @param           {ILitElementDispatchSettings}          [settings={}]     The settings to use for the dispatch
+   * @param           {TLitElementDispatchSettings}          [settings={}]     The settings to use for the dispatch
    *
    * @since       2.0.0
    * @author 		Olivier Bossel<olivier.bossel@gmail.com>
    */
   dispatch(
     eventName: string,
-    settings?: Partial<ILitElementDispatchSettings>,
+    settings?: Partial<TLitElementDispatchSettings>,
   ): void {
-    const finalSettings: ILitElementDispatchSettings = {
+    const finalSettings: TLitElementDispatchSettings = {
       $elm: this,
       bubbles: true,
       cancelable: true,
@@ -449,38 +454,47 @@ export default class LitElement extends __LitElement {
 
     if (!cls) {
       cls = this.tagName.toLowerCase();
+      if (this._internalName !== cls) {
+        cls += ` ${this._internalName}`;
+      }
       if (this.name && this.name !== this.tagName.toLowerCase()) {
         cls += ` ${this.name.toLowerCase()}`;
       }
       return cls;
     }
 
-    if (cls) {
-      clsString = cls
-        .split(' ')
-        .map((clsName) => {
-          let clses: string[] = [];
-          // class from the component tagname if wanted
+    clsString = cls
+      .split(' ')
+      .map((clsName) => {
+        let clses: string[] = [];
+        // internal name
+        if (this.tagName.toLowerCase() !== this._internalName) {
           clses.push(
-            `${this.tagName.toLowerCase()}${
+            `${this._internalName.toLowerCase()}${
               clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
             }${clsName}`,
           );
-          // if a special "name" is setted
-          if (this.name && this.name !== this.tagName.toLowerCase()) {
-            clses.push(
-              `${this.name.toLowerCase()}${
-                clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
-              }${clsName}`,
-            );
-          }
-          // replace '---' by '--'
-          clses = clses.map((c) => c.replace('---', '--'));
+        }
+        // class from the component tagname if wanted
+        clses.push(
+          `${this.tagName.toLowerCase()}${
+            clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
+          }${clsName}`,
+        );
+        // if a special "name" is setted
+        if (this.name && this.name !== this.tagName.toLowerCase()) {
+          clses.push(
+            `${this.name.toLowerCase()}${
+              clsName && !clsName.match(/^(_{1,2}|-)/) ? '-' : ''
+            }${clsName}`,
+          );
+        }
+        // replace '---' by '--'
+        clses = clses.map((c) => c.replace('---', '--'));
 
-          return clses.join(' ');
-        })
-        .join(' ');
-    }
+        return clses.join(' ');
+      })
+      .join(' ');
 
     if (style) {
       clsString += ` ${style}`;

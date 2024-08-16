@@ -1,5 +1,5 @@
 {
-  "name": "@lotsof/litElement",
+  "name": "@lotsof/lit-element",
   "version": "1.0.0",
   "description": "Simple class that extends the features of the wonderful lit-element package",
   "type": "module",
