@@ -375,44 +375,39 @@ export default class LitElement extends __LitElement {
       ...(settings ?? {}),
     };
 
-    if (this.prefixEvent) {
-      if (this.name && this.name !== this.tagName.toLowerCase()) {
-        this.log(
-          'Dispatching event',
-          `${__camelCase(this.name)}.${__camelCase(eventName)}`,
-        );
-        // %componentName.%eventName
-        finalSettings.$elm.dispatchEvent(
-          new CustomEvent(
-            `${__camelCase(this.name)}.${__camelCase(eventName)}`,
-            finalSettings,
-          ),
-        );
+    // from the "name" property
+    if (this.name && this.name !== this.tagName.toLowerCase()) {
+      let finalEventName = __camelCase(eventName);
+      if (this.prefixEvent) {
+        finalEventName = `${__camelCase(this.name)}.${finalEventName}`;
       }
-      this.log(
-        'Dispatching event',
-        `${__camelCase(this.tagName)}.${__camelCase(eventName)}`,
-      );
+      this.log('Dispatching event from "name" property', finalEventName);
       // %componentName.%eventName
       finalSettings.$elm.dispatchEvent(
-        new CustomEvent(
-          `${__camelCase(this.tagName)}.${__camelCase(eventName)}`,
-          finalSettings,
-        ),
-      );
-    } else {
-      this.log('Dispatching event', `${__camelCase(eventName)}`);
-      // %eventName
-      finalSettings.$elm.dispatchEvent(
-        new CustomEvent(__camelCase(eventName), {
-          ...finalSettings,
-          detail: {
-            ...finalSettings.detail,
-            eventComponent: this.name,
-          },
-        }),
+        new CustomEvent(finalEventName, finalSettings),
       );
     }
+
+    // from the "internalName" property
+    let finalEventName = __camelCase(eventName);
+    if (this.prefixEvent) {
+      finalEventName = `${__camelCase(this._internalName)}.${finalEventName}`;
+    }
+    finalSettings.$elm.dispatchEvent(
+      new CustomEvent(finalEventName, finalSettings),
+    );
+    this.log('Dispatching event from "internalName" property', finalEventName);
+
+    // from the tagName
+    // %componentName.%eventName
+    finalEventName = __camelCase(eventName);
+    if (this.prefixEvent) {
+      finalEventName = `${__camelCase(this.tagName)}.${finalEventName}`;
+    }
+    finalSettings.$elm.dispatchEvent(
+      new CustomEvent(finalEventName, finalSettings),
+    );
+    this.log('Dispatching event from "tagName" property', finalEventName);
   }
 
   /**
@@ -435,6 +430,28 @@ export default class LitElement extends __LitElement {
     $context?: HTMLElement | typeof document,
   ): Promise<any> {
     return __adoptStyleInShadowRoot($shadowRoot, $context);
+  }
+
+  /**
+   * @name          internalCls
+   * @type          Function
+   *
+   * This method allows you to get a class that is based in on the internalName of the component.
+   * This is useful to query some element(s) inside your component that used the `cls` method.
+   *
+   * @param         {String}        cls         The class you want to process. Can be multiple classes separated by a space. If null, does not print any class at all but the "style" one
+   * @return        {String}                    The generated internalName based class that you can apply
+   *
+   * @since         2.0.0
+   * @author 		Olivier Bossel<olivier.bossel@gmail.com>
+   */
+  internalCls(cls: string = ''): string {
+    if (!cls) {
+      return this._internalName;
+    }
+    return `${this._internalName.toLowerCase()}${
+      cls && !cls.match(/^(_{1,2}|-)/) ? '-' : ''
+    }${cls}`;
   }
 
   /**

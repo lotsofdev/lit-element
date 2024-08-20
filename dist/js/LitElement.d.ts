@@ -147,6 +147,20 @@ export default class LitElement extends __LitElement {
      */
     adoptStyleInShadowRoot($shadowRoot: ShadowRoot, $context?: HTMLElement | typeof document): Promise<any>;
     /**
+     * @name          internalCls
+     * @type          Function
+     *
+     * This method allows you to get a class that is based in on the internalName of the component.
+     * This is useful to query some element(s) inside your component that used the `cls` method.
+     *
+     * @param         {String}        cls         The class you want to process. Can be multiple classes separated by a space. If null, does not print any class at all but the "style" one
+     * @return        {String}                    The generated internalName based class that you can apply
+     *
+     * @since         2.0.0
+     * @author 		Olivier Bossel<olivier.bossel@gmail.com>
+     */
+    internalCls(cls?: string): string;
+    /**
      * @name          cls
      * @type          Function
      *
