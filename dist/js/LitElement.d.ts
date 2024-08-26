@@ -25,29 +25,30 @@ export type TSLitElementDefaultProps = {
     saveState: boolean;
     stateId: string;
     shadowDom: boolean;
+    darkModeClass: string;
 };
 export type TSLitElementSettings = {};
 export default class LitElement extends __LitElement {
     static _keepInjectedCssBeforeStylesheetLinksInited: boolean;
     static _defaultProps: Record<string, Record<string, any>>;
-    accessor id: string;
-    accessor name: string;
-    accessor verbose: boolean;
-    accessor activeWhen: 'inViewport'[];
-    accessor mountWhen: 'directly' | 'direct' | 'inViewport';
-    accessor prefixEvent: boolean;
-    accessor adoptStyle: boolean;
-    accessor saveState: boolean;
-    accessor stateId: string;
-    accessor shadowDom: boolean;
-    accessor lnf: boolean;
+    id: string | undefined;
+    name: string;
+    verbose: boolean;
+    activeWhen: 'inViewport'[];
+    mountWhen: 'directly' | 'direct' | 'inViewport';
+    prefixEvent: boolean;
+    adoptStyle: boolean;
+    saveState: boolean;
+    stateId: string;
+    shadowDom: boolean;
+    lnf: boolean;
     protected _internalName: string;
     _shouldUpdate: boolean;
     _isInViewport: boolean;
     _whenInViewportPromise: TWhenInViewportResult;
-    _state: TLitElementState;
-    get state(): TLitElementState;
-    set state(state: any);
+    protected _state: any;
+    get state(): LitElement['_state'];
+    set state(state: LitElement['_state']);
     /**
      * @name            define
      * @type            Function
@@ -65,7 +66,7 @@ export default class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    static define(tagName: string, Cls: typeof LitElement, props?: any, settings?: Partial<TLitElementDefineSettings>): void;
+    static define(tagName: string, props?: any, settings?: Partial<TLitElementDefineSettings>): void;
     /**
      * @name            setDefaultProps
      * @type            Function
@@ -111,6 +112,7 @@ export default class LitElement extends __LitElement {
      */
     constructor(internalName: string);
     connectedCallback(): void;
+    setState(newState: Partial<LitElement['_state']>): void;
     log(...args: any[]): void;
     _getDocumentFromElement($elm: any): any;
     /**

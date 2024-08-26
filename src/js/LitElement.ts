@@ -7,7 +7,7 @@ import {
   __whenInViewport,
 } from '@lotsof/sugar/dom';
 
-import { __camelCase, __uniqid } from '@lotsof/sugar/string';
+import { __camelCase } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
 import { TWhenInViewportResult } from '../../../sugar/dist/js/dom/when/whenInViewport.js';
@@ -41,6 +41,7 @@ export type TSLitElementDefaultProps = {
   saveState: boolean;
   stateId: string;
   shadowDom: boolean;
+  darkModeClass: string;
 };
 
 export type TSLitElementSettings = {};
@@ -51,37 +52,37 @@ export default class LitElement extends __LitElement {
   static _defaultProps: Record<string, Record<string, any>> = {};
 
   @property({ type: String })
-  accessor id: string = __uniqid();
+  public id: string | undefined = undefined;
 
   @property({ type: String })
-  accessor name: string = '';
+  public name: string = '';
 
   @property({ type: Boolean })
-  accessor verbose: boolean = false;
+  public verbose: boolean = false;
 
   @property({ type: Array })
-  accessor activeWhen: 'inViewport'[] = [];
+  public activeWhen: 'inViewport'[] = [];
 
   @property({ type: String })
-  accessor mountWhen: 'directly' | 'direct' | 'inViewport' = 'direct';
+  public mountWhen: 'directly' | 'direct' | 'inViewport' = 'direct';
 
   @property({ type: Boolean })
-  accessor prefixEvent: boolean = true;
+  public prefixEvent: boolean = true;
 
   @property({ type: Boolean })
-  accessor adoptStyle: boolean = true;
+  public adoptStyle: boolean = true;
 
   @property({ type: Boolean })
-  accessor saveState: boolean = false;
+  public saveState: boolean = false;
 
   @property({ type: String })
-  accessor stateId: string = '';
+  public stateId: string = '';
 
   @property({ type: Boolean })
-  accessor shadowDom: boolean = false;
+  public shadowDom: boolean = false;
 
   @property({ type: Boolean })
-  accessor lnf: boolean = false;
+  public lnf: boolean = false;
 
   protected _internalName: string = this.tagName.toLowerCase();
 
@@ -89,33 +90,22 @@ export default class LitElement extends __LitElement {
   _isInViewport = false;
   _whenInViewportPromise: TWhenInViewportResult;
 
-  _state: TLitElementState = {
-    status: 'idle',
-  };
-  get state(): TLitElementState {
-    if (this.saveState) {
+  protected _state: any = {};
+  get state(): LitElement['_state'] {
+    const stateId = this.stateId || this.id;
+    if (this.saveState && stateId) {
       try {
-        const savedState = JSON.parse(
-          localStorage.getItem(this.stateId || this.id) ?? '{}',
-        );
+        const savedState = JSON.parse(localStorage.getItem(stateId) ?? '{}');
         return savedState;
       } catch (e) {}
     }
     return this._state;
   }
-  set state(state: any) {
+  set state(state: LitElement['_state']) {
     Object.assign(this._state, state);
-
-    if (this.saveState) {
-      if (!this.stateId && !this.id) {
-        throw new Error(
-          `To save the state, you need to set a "stateId" or an "id"`,
-        );
-      }
-      localStorage.setItem(
-        this.stateId || this.id,
-        JSON.stringify(this._state),
-      );
+    const stateId = this.stateId || this.id;
+    if (this.saveState && stateId) {
+      localStorage.setItem(stateId, JSON.stringify(this._state));
     }
   }
 
@@ -138,10 +128,15 @@ export default class LitElement extends __LitElement {
    */
   static define(
     tagName: string,
-    Cls: typeof LitElement,
     props: any = {},
     settings: Partial<TLitElementDefineSettings> = {},
   ) {
+    if (!tagName) {
+      throw new Error(
+        `You have to specify a tagName to the ${this.name}.define method...`,
+      );
+    }
+
     // set the default props
     LitElement.setDefaultProps(tagName, props);
 
@@ -151,7 +146,7 @@ export default class LitElement extends __LitElement {
     }
 
     // @ts-ignore
-    win.customElements.define(tagName.toLowerCase(), class extends Cls {});
+    win.customElements.define(tagName.toLowerCase(), class extends this {});
   }
 
   /**
@@ -284,13 +279,13 @@ export default class LitElement extends __LitElement {
     this.classList.add(...this.cls('').split(' '));
 
     // look and feel class
-    console.log('lnf', this.lnf);
     if (this.lnf) {
       this.classList.add('-lnf');
     }
 
     // shadow handler
     if (this.shadowDom === false) {
+      // @ts-ignore
       this.createRenderRoot = () => {
         return this;
       };
@@ -326,6 +321,14 @@ export default class LitElement extends __LitElement {
     }
 
     super.connectedCallback();
+  }
+
+  setState(newState: Partial<LitElement['_state']>): void {
+    this.state = {
+      ...this.state,
+      ...newState,
+    };
+    this.requestUpdate();
   }
 
   log(...args) {

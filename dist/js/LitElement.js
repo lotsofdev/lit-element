@@ -13,52 +13,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-};
-var _LitElement_id_accessor_storage, _LitElement_name_accessor_storage, _LitElement_verbose_accessor_storage, _LitElement_activeWhen_accessor_storage, _LitElement_mountWhen_accessor_storage, _LitElement_prefixEvent_accessor_storage, _LitElement_adoptStyle_accessor_storage, _LitElement_saveState_accessor_storage, _LitElement_stateId_accessor_storage, _LitElement_shadowDom_accessor_storage, _LitElement_lnf_accessor_storage;
 import { __wait } from '@lotsof/sugar/datetime';
 import { __adoptStyleInShadowRoot, __injectStyle, __querySelectorLive, __when, __whenInViewport, } from '@lotsof/sugar/dom';
-import { __camelCase, __uniqid } from '@lotsof/sugar/string';
+import { __camelCase } from '@lotsof/sugar/string';
 import { LitElement as __LitElement, html as __html } from 'lit';
 import { property } from 'lit/decorators.js';
 export { __html as html };
 class LitElement extends __LitElement {
-    get id() { return __classPrivateFieldGet(this, _LitElement_id_accessor_storage, "f"); }
-    set id(value) { __classPrivateFieldSet(this, _LitElement_id_accessor_storage, value, "f"); }
-    get name() { return __classPrivateFieldGet(this, _LitElement_name_accessor_storage, "f"); }
-    set name(value) { __classPrivateFieldSet(this, _LitElement_name_accessor_storage, value, "f"); }
-    get verbose() { return __classPrivateFieldGet(this, _LitElement_verbose_accessor_storage, "f"); }
-    set verbose(value) { __classPrivateFieldSet(this, _LitElement_verbose_accessor_storage, value, "f"); }
-    get activeWhen() { return __classPrivateFieldGet(this, _LitElement_activeWhen_accessor_storage, "f"); }
-    set activeWhen(value) { __classPrivateFieldSet(this, _LitElement_activeWhen_accessor_storage, value, "f"); }
-    get mountWhen() { return __classPrivateFieldGet(this, _LitElement_mountWhen_accessor_storage, "f"); }
-    set mountWhen(value) { __classPrivateFieldSet(this, _LitElement_mountWhen_accessor_storage, value, "f"); }
-    get prefixEvent() { return __classPrivateFieldGet(this, _LitElement_prefixEvent_accessor_storage, "f"); }
-    set prefixEvent(value) { __classPrivateFieldSet(this, _LitElement_prefixEvent_accessor_storage, value, "f"); }
-    get adoptStyle() { return __classPrivateFieldGet(this, _LitElement_adoptStyle_accessor_storage, "f"); }
-    set adoptStyle(value) { __classPrivateFieldSet(this, _LitElement_adoptStyle_accessor_storage, value, "f"); }
-    get saveState() { return __classPrivateFieldGet(this, _LitElement_saveState_accessor_storage, "f"); }
-    set saveState(value) { __classPrivateFieldSet(this, _LitElement_saveState_accessor_storage, value, "f"); }
-    get stateId() { return __classPrivateFieldGet(this, _LitElement_stateId_accessor_storage, "f"); }
-    set stateId(value) { __classPrivateFieldSet(this, _LitElement_stateId_accessor_storage, value, "f"); }
-    get shadowDom() { return __classPrivateFieldGet(this, _LitElement_shadowDom_accessor_storage, "f"); }
-    set shadowDom(value) { __classPrivateFieldSet(this, _LitElement_shadowDom_accessor_storage, value, "f"); }
-    get lnf() { return __classPrivateFieldGet(this, _LitElement_lnf_accessor_storage, "f"); }
-    set lnf(value) { __classPrivateFieldSet(this, _LitElement_lnf_accessor_storage, value, "f"); }
     get state() {
         var _a;
-        if (this.saveState) {
+        const stateId = this.stateId || this.id;
+        if (this.saveState && stateId) {
             try {
-                const savedState = JSON.parse((_a = localStorage.getItem(this.stateId || this.id)) !== null && _a !== void 0 ? _a : '{}');
+                const savedState = JSON.parse((_a = localStorage.getItem(stateId)) !== null && _a !== void 0 ? _a : '{}');
                 return savedState;
             }
             catch (e) { }
@@ -67,11 +34,9 @@ class LitElement extends __LitElement {
     }
     set state(state) {
         Object.assign(this._state, state);
-        if (this.saveState) {
-            if (!this.stateId && !this.id) {
-                throw new Error(`To save the state, you need to set a "stateId" or an "id"`);
-            }
-            localStorage.setItem(this.stateId || this.id, JSON.stringify(this._state));
+        const stateId = this.stateId || this.id;
+        if (this.saveState && stateId) {
+            localStorage.setItem(stateId, JSON.stringify(this._state));
         }
     }
     /**
@@ -91,8 +56,11 @@ class LitElement extends __LitElement {
      * @since       2.0.0
      * @author 		Olivier Bossel<olivier.bossel@gmail.com>
      */
-    static define(tagName, Cls, props = {}, settings = {}) {
+    static define(tagName, props = {}, settings = {}) {
         var _a;
+        if (!tagName) {
+            throw new Error(`You have to specify a tagName to the ${this.name}.define method...`);
+        }
         // set the default props
         LitElement.setDefaultProps(tagName, props);
         const win = (_a = settings.window) !== null && _a !== void 0 ? _a : window;
@@ -100,7 +68,7 @@ class LitElement extends __LitElement {
             return;
         }
         // @ts-ignore
-        win.customElements.define(tagName.toLowerCase(), class extends Cls {
+        win.customElements.define(tagName.toLowerCase(), class extends this {
         });
     }
     /**
@@ -166,23 +134,21 @@ class LitElement extends __LitElement {
     constructor(internalName) {
         var _a, _b, _c, _d;
         super();
-        _LitElement_id_accessor_storage.set(this, __uniqid());
-        _LitElement_name_accessor_storage.set(this, '');
-        _LitElement_verbose_accessor_storage.set(this, false);
-        _LitElement_activeWhen_accessor_storage.set(this, []);
-        _LitElement_mountWhen_accessor_storage.set(this, 'direct');
-        _LitElement_prefixEvent_accessor_storage.set(this, true);
-        _LitElement_adoptStyle_accessor_storage.set(this, true);
-        _LitElement_saveState_accessor_storage.set(this, false);
-        _LitElement_stateId_accessor_storage.set(this, '');
-        _LitElement_shadowDom_accessor_storage.set(this, false);
-        _LitElement_lnf_accessor_storage.set(this, false);
+        this.id = undefined;
+        this.name = '';
+        this.verbose = false;
+        this.activeWhen = [];
+        this.mountWhen = 'direct';
+        this.prefixEvent = true;
+        this.adoptStyle = true;
+        this.saveState = false;
+        this.stateId = '';
+        this.shadowDom = false;
+        this.lnf = false;
         this._internalName = this.tagName.toLowerCase();
         this._shouldUpdate = false;
         this._isInViewport = false;
-        this._state = {
-            status: 'idle',
-        };
+        this._state = {};
         if (internalName) {
             this._internalName = internalName;
         }
@@ -236,12 +202,12 @@ class LitElement extends __LitElement {
         // component class
         this.classList.add(...this.cls('').split(' '));
         // look and feel class
-        console.log('lnf', this.lnf);
         if (this.lnf) {
             this.classList.add('-lnf');
         }
         // shadow handler
         if (this.shadowDom === false) {
+            // @ts-ignore
             this.createRenderRoot = () => {
                 return this;
             };
@@ -268,6 +234,10 @@ class LitElement extends __LitElement {
             LitElement._keepInjectedCssBeforeStylesheetLinksInited = true;
         }
         super.connectedCallback();
+    }
+    setState(newState) {
+        this.state = Object.assign(Object.assign({}, this.state), newState);
+        this.requestUpdate();
     }
     log(...args) {
         if (this.verbose) {
@@ -531,42 +501,41 @@ class LitElement extends __LitElement {
         (_b = (_a = this._whenInViewportPromise).cancel) === null || _b === void 0 ? void 0 : _b.call(_a);
     }
 }
-_LitElement_id_accessor_storage = new WeakMap(), _LitElement_name_accessor_storage = new WeakMap(), _LitElement_verbose_accessor_storage = new WeakMap(), _LitElement_activeWhen_accessor_storage = new WeakMap(), _LitElement_mountWhen_accessor_storage = new WeakMap(), _LitElement_prefixEvent_accessor_storage = new WeakMap(), _LitElement_adoptStyle_accessor_storage = new WeakMap(), _LitElement_saveState_accessor_storage = new WeakMap(), _LitElement_stateId_accessor_storage = new WeakMap(), _LitElement_shadowDom_accessor_storage = new WeakMap(), _LitElement_lnf_accessor_storage = new WeakMap();
 LitElement._keepInjectedCssBeforeStylesheetLinksInited = false;
 LitElement._defaultProps = {};
 LitElement._injectedStyles = [];
 export default LitElement;
 __decorate([
     property({ type: String })
-], LitElement.prototype, "id", null);
+], LitElement.prototype, "id", void 0);
 __decorate([
     property({ type: String })
-], LitElement.prototype, "name", null);
+], LitElement.prototype, "name", void 0);
 __decorate([
     property({ type: Boolean })
-], LitElement.prototype, "verbose", null);
+], LitElement.prototype, "verbose", void 0);
 __decorate([
     property({ type: Array })
-], LitElement.prototype, "activeWhen", null);
+], LitElement.prototype, "activeWhen", void 0);
 __decorate([
     property({ type: String })
-], LitElement.prototype, "mountWhen", null);
+], LitElement.prototype, "mountWhen", void 0);
 __decorate([
     property({ type: Boolean })
-], LitElement.prototype, "prefixEvent", null);
+], LitElement.prototype, "prefixEvent", void 0);
 __decorate([
     property({ type: Boolean })
-], LitElement.prototype, "adoptStyle", null);
+], LitElement.prototype, "adoptStyle", void 0);
 __decorate([
     property({ type: Boolean })
-], LitElement.prototype, "saveState", null);
+], LitElement.prototype, "saveState", void 0);
 __decorate([
     property({ type: String })
-], LitElement.prototype, "stateId", null);
+], LitElement.prototype, "stateId", void 0);
 __decorate([
     property({ type: Boolean })
-], LitElement.prototype, "shadowDom", null);
+], LitElement.prototype, "shadowDom", void 0);
 __decorate([
     property({ type: Boolean })
-], LitElement.prototype, "lnf", null);
+], LitElement.prototype, "lnf", void 0);
 //# sourceMappingURL=LitElement.js.map
